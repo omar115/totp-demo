@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TOTP Generator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #000000;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 25px 50px -12px rgba(255, 255, 255, 0.1);
+            padding: 40px;
+            max-width: 500px;
+            width: 100%;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        
+        .header h1 {
+            font-size: 32px;
+            font-weight: bold;
+            color: #1f2937;
+            margin-bottom: 8px;
+        }
+        
+        .header p {
+            color: #6b7280;
+            font-size: 16px;
+        }
+        
+        .info-box {
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 32px;
+        }
+        
+        .info-box h3 {
+            color: #1e40af;
+            font-size: 16px;
+            margin-bottom: 12px;
+            font-weight: 600;
+        }
+        
+        .info-box ol {
+            color: #1f2937;
+            font-size: 14px;
+            line-height: 1.6;
+            padding-left: 20px;
+        }
+        
+        .info-box li {
+            margin-bottom: 4px;
+        }
+        
+        .form-group {
+            margin-bottom: 24px;
+        }
+        
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 16px;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            transition: border-color 0.2s;
+            background: #f9fafb;
+        }
+        
+        .form-group input:focus {
+            outline: none;
+            border-color: #6366f1;
+            background: white;
+        }
+        
+        .help-text {
+            font-size: 12px;
+            color: #6b7280;
+            margin-top: 4px;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 32px;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+            flex: 1;
+            min-width: 120px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        
+        .btn-primary {
+            background: #6366f1;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #5b21b6;
+            transform: translateY(-1px);
+        }
+        
+        .btn-secondary {
+            background: #f3f4f6;
+            color: #374151;
+            border: 1px solid #d1d5db;
+        }
+        
+        .btn-secondary:hover {
+            background: #e5e7eb;
+        }
+        
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+        
+        .code-display {
+            background: #f8fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 32px;
+            text-align: center;
+            margin-bottom: 24px;
+            display: none;
+        }
+        
+        .code-display.show {
+            display: block;
+        }
+        
+        .code {
+            font-size: 48px;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-weight: bold;
+            color: #1e293b;
+            margin-bottom: 16px;
+            letter-spacing: 4px;
+        }
+        
+        .timer-info {
+            font-size: 16px;
+            color: #64748b;
+            margin-bottom: 16px;
+        }
+        
+        .timer-seconds {
+            font-weight: bold;
+            color: #6366f1;
+            font-size: 18px;
+        }
+        
+        .progress-container {
+            width: 100%;
+            height: 8px;
+            background: #e2e8f0;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .progress-bar {
+            height: 100%;
+            background: #22c55e;
+            transition: width 1s linear;
+            border-radius: 4px;
+        }
+        
+        .progress-bar.warning {
+            background: #f59e0b;
+        }
+        
+        .progress-bar.danger {
+            background: #ef4444;
+        }
+        
+        .qr-display {
+            text-align: center;
+            margin-top: 24px;
+            padding: 24px;
+            background: #f8fafc;
+            border-radius: 12px;
+            display: none;
+        }
+        
+        .qr-display.show {
+            display: block;
+        }
+        
+        .qr-display h3 {
+            margin-bottom: 16px;
+            color: #1f2937;
+            font-size: 18px;
+        }
+        
+        .qr-display img {
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            background: white;
+            padding: 16px;
+            max-width: 200px;
+        }
+        
+        .qr-secret {
+            margin-top: 12px;
+            font-size: 12px;
+            color: #6b7280;
+            font-family: monospace;
+        }
+        
+        .qr-explanation {
+            margin-top: 24px;
+            text-align: left;
+            background: #f8fafc;
+            border-radius: 8px;
+            padding: 20px;
+        }
+        
+        .qr-explanation h4 {
+            color: #1f2937;
+            font-size: 16px;
+            margin-bottom: 12px;
+            font-weight: 600;
+        }
+        
+        .qr-explanation ul {
+            color: #374151;
+            font-size: 14px;
+            line-height: 1.6;
+            padding-left: 20px;
+        }
+        
+        .qr-explanation li {
+            margin-bottom: 8px;
+        }
+        
+        .qr-explanation strong {
+            color: #1f2937;
+        }
+        
+        .alert {
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 24px;
+            font-weight: 500;
+            display: none;
+        }
+        
+        .alert.show {
+            display: block;
+        }
+        
+        .alert.success {
+            background: #d1fae5;
+            color: #065f46;
+            border: 1px solid #a7f3d0;
+        }
+        
+        .alert.error {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fca5a5;
+        }
+        
+        .icon {
+            width: 16px;
+            height: 16px;
+            fill: currentColor;
+        }
+        
+        @media (max-width: 640px) {
+            .container {
+                padding: 24px;
+            }
+            
+            .button-group {
+                flex-direction: column;
+            }
+            
+            .btn {
+                flex: none;
+            }
+            
+            .code {
+                font-size: 36px;
+                letter-spacing: 2px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔐 TOTP Generator</h1>
+            <p>Generate secure 6-digit codes that change every 30 seconds</p>
+        </div>
+        
+        <div id="alert" class="alert"></div>
+        
+        <div class="info-box">
+            <h3>How it works:</h3>
+            <ol>
+                <li>Enter your 2FA secret key below</li>
+                <li>Click "Generate Code" for a fresh 30-second code</li>
+                <li>Use the code in your app before it expires</li>
+                <li>Generate a new code when needed</li>
+            </ol>
+        </div>
+        
+        <form>
+            <div class="form-group">
+                <label for="secret">TOTP Secret (Base32)</label>
+                <input 
+                    type="text" 
+                    id="secret" 
+                    value="{{ demo_secret }}" 
+                    placeholder="Enter your TOTP secret key"
+                    autocomplete="off"
+                >
+                <div class="help-text">
+                    This is the secret key provided when setting up 2FA
+                </div>
+            </div>
+            
+            <div class="button-group">
+                <button type="button" class="btn btn-primary" onclick="generateCode()">
+                    <svg class="icon" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 1a4.5 4.5 0 00-4.5 4.5V9H5a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2v-6a2 2 0 00-2-2h-.5V5.5A4.5 4.5 0 0010 1zm3 8V5.5a3 3 0 10-6 0V9h6z" clip-rule="evenodd"/>
+                    </svg>
+                    Generate Fresh Code
+                </button>
+                
+                <button type="button" class="btn btn-secondary" onclick="showQRCode()">
+                    <svg class="icon" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M3 4a1 1 0 011-1h3a1 1 0 011 1v3a1 1 0 01-1 1H4a1 1 0 01-1-1V4zm2 2V5h1v1H5zM3 13a1 1 0 011-1h3a1 1 0 011 1v3a1 1 0 01-1 1H4a1 1 0 01-1-1v-3zm2 2v-1h1v1H5zM13 4a1 1 0 011-1h3a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1V4zm2 2V5h1v1h-1zM11 4a1 1 0 100-2 1 1 0 000 2zM9 1a1 1 0 000 2 1 1 0 000-2zM9 13a1 1 0 100-2 1 1 0 000 2zM11 15a1 1 0 100-2 1 1 0 000 2zM13 13a1 1 0 100-2 1 1 0 000 2zM15 11a1 1 0 100-2 1 1 0 000 2zM13 9a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"/>
+                    </svg>
+                    Show QR Code
+                </button>
+            </div>
+        </form>
+        
+        <div id="codeDisplay" class="code-display">
+            <div id="code" class="code">------</div>
+            <div class="timer-info">
+                <strong>⏱️ Time remaining: <span id="timer" class="timer-seconds">30</span> seconds</strong>
+            </div>
+            <div class="progress-container">
+                <div id="progressBar" class="progress-bar"></div>
+            </div>
+            <div class="help-text" style="margin-top: 12px; text-align: center; color: #6b7280;">
+                Use this code in your app before the timer runs out
+            </div>
+        </div>
+        
+        <div id="qrDisplay" class="qr-display">
+            <h3>Scan with Authenticator App</h3>
+            <div id="qrCodeContainer"></div>
+            <div id="qrSecret" class="qr-secret"></div>
+            
+            <div class="qr-explanation">
+                <h4>What does this QR code do?</h4>
+                <ul>
+                    <li><strong>Links your secret key to your phone:</strong> Instead of manually typing your secret, just scan this code</li>
+                    <li><strong>Works with any authenticator app:</strong> Google Authenticator, Authy, Microsoft Authenticator, etc.</li>
+                    <li><strong>One-time setup:</strong> After scanning, your phone will generate the same codes as this website</li>
+                    <li><strong>Verify it works:</strong> Compare codes from your phone app with codes generated here</li>
+                    <li><strong>Use anywhere:</strong> Once set up, you can generate codes from your phone without this website</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let countdownInterval = null;
+        let isGenerating = false;
+
+        async function generateCode() {
+            if (isGenerating) return;
+            
+            const secret = document.getElementById('secret').value.trim();
+            if (!secret) {
+                showAlert('Please enter a TOTP secret', 'error');
+                return;
+            }
+
+            isGenerating = true;
+            const button = event.target;
+            const originalText = button.innerHTML;
+            
+            // Check if we need to wait for a fresh code
+            const now = Math.floor(Date.now() / 1000);
+            const timeInCycle = now % 30;
+            const remainingInCurrent = 30 - timeInCycle;
+            
+            // If less than 8 seconds left, wait for next cycle for better UX
+            if (remainingInCurrent < 8) {
+                button.innerHTML = `Waiting for fresh code... ${remainingInCurrent}`;
+                button.disabled = true;
+                
+                const waitInterval = setInterval(() => {
+                    const nowWait = Math.floor(Date.now() / 1000);
+                    const timeInCycleWait = nowWait % 30;
+                    const remainingWait = 30 - timeInCycleWait;
+                    
+                    if (remainingWait > remainingInCurrent || remainingWait > 25) {
+                        // New cycle started
+                        clearInterval(waitInterval);
+                        actuallyGenerateCode(secret, button, originalText);
+                    } else {
+                        button.innerHTML = `Waiting for fresh code... ${remainingWait}`;
+                    }
+                }, 1000);
+            } else {
+                // Generate immediately
+                actuallyGenerateCode(secret, button, originalText);
+            }
+        }
+        
+        async function actuallyGenerateCode(secret, button, originalText) {
+            button.innerHTML = 'Generating...';
+            
+            try {
+                const response = await fetch('/generate-totp/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ secret: secret })
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    displayCode(data.code, data.remaining_seconds);
+                    showAlert('Fresh TOTP code generated! Valid for ' + data.remaining_seconds + ' seconds.', 'success');
+                } else {
+                    showAlert('Error: ' + data.error, 'error');
+                }
+            } catch (error) {
+                showAlert('Failed to generate code. Please try again.', 'error');
+            } finally {
+                isGenerating = false;
+                button.innerHTML = originalText;
+                button.disabled = false;
+            }
+        }
+
+        function displayCode(code, remainingSeconds) {
+            const codeDisplay = document.getElementById('codeDisplay');
+            const codeElement = document.getElementById('code');
+            
+            codeDisplay.classList.add('show');
+            codeElement.textContent = code;
+            
+            // Clear existing countdown
+            if (countdownInterval) {
+                clearInterval(countdownInterval);
+            }
+            
+            // Start countdown
+            let seconds = remainingSeconds;
+            updateTimer(seconds);
+            
+            countdownInterval = setInterval(() => {
+                seconds--;
+                if (seconds <= 0) {
+                    clearInterval(countdownInterval);
+                    document.getElementById('timer').textContent = '0';
+                    document.getElementById('progressBar').style.width = '0%';
+                    document.getElementById('code').textContent = 'EXPIRED';
+                    document.getElementById('code').style.color = '#ef4444';
+                    showAlert('⏰ Code expired! Click "Generate Fresh Code" for a new one.', 'error');
+                    return;
+                }
+                updateTimer(seconds);
+            }, 1000);
+        }
+
+        function updateTimer(seconds) {
+            const timerElement = document.getElementById('timer');
+            const progressBar = document.getElementById('progressBar');
+            
+            timerElement.textContent = seconds;
+            const percentage = (seconds / 30) * 100;
+            progressBar.style.width = percentage + '%';
+            
+            // Reset code color if it was red from expiration
+            if (seconds > 0) {
+                document.getElementById('code').style.color = '#1e293b';
+            }
+            
+            // Change color based on remaining time
+            progressBar.className = 'progress-bar';
+            if (seconds <= 5) {
+                progressBar.classList.add('danger');
+            } else if (seconds <= 10) {
+                progressBar.classList.add('warning');
+            }
+        }
+
+        async function showQRCode() {
+            const secret = document.getElementById('secret').value.trim();
+            if (!secret) {
+                showAlert('Please enter a TOTP secret', 'error');
+                return;
+            }
+
+            const button = event.target;
+            const originalText = button.innerHTML;
+            button.innerHTML = 'Loading...';
+            button.disabled = true;
+
+            try {
+                const response = await fetch(`/generate-qr/?secret=${encodeURIComponent(secret)}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    const qrDisplay = document.getElementById('qrDisplay');
+                    const qrContainer = document.getElementById('qrCodeContainer');
+                    const qrSecret = document.getElementById('qrSecret');
+                    
+                    qrContainer.innerHTML = `<img src="${data.qr_code}" alt="QR Code for TOTP setup">`;
+                    qrSecret.textContent = `Secret: ${data.secret}`;
+                    qrDisplay.classList.add('show');
+                    
+                    showAlert('QR code generated! Scan with your authenticator app.', 'success');
+                } else {
+                    showAlert('Error generating QR code: ' + data.error, 'error');
+                }
+            } catch (error) {
+                showAlert('Failed to generate QR code. Please try again.', 'error');
+            } finally {
+                button.innerHTML = originalText;
+                button.disabled = false;
+            }
+        }
+
+        function showAlert(message, type) {
+            const alertElement = document.getElementById('alert');
+            alertElement.textContent = message;
+            alertElement.className = `alert ${type} show`;
+            
+            setTimeout(() => {
+                alertElement.classList.remove('show');
+            }, 4000);
+        }
+
+        // Auto-focus on the secret input
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('secret').focus();
+        });
+    </script>
+</body>
+</html>
